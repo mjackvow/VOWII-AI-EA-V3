@@ -1,0 +1,6 @@
+{
+  "name": "VOWII AI EA",
+  "description": "Institutional-Grade Multi-Model Vision & AI Ensemble Trading Intelligence Platform",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
