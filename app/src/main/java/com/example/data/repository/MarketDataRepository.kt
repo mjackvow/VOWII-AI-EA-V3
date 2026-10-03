@@ -2,6 +2,7 @@ package com.example.data.repository
 
 import android.util.Log
 import com.example.BuildConfig
+import com.example.data.config.ApiConfig
 import com.example.data.model.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
@@ -31,29 +32,9 @@ class MarketDataRepository {
         .writeTimeout(10, TimeUnit.SECONDS)
         .build()
 
-    private val TWELVE_DATA_KEY = "26c4993fde2a49afb8c6f900401e576c"
-
-    // Dynamically retrieve configured Finnhub/Finnbub API key from BuildConfig or environment variables
-    private val FINNHUB_KEY: String by lazy {
-        val configured = try {
-            val bFields = BuildConfig::class.java.fields
-            val k1 = bFields.firstOrNull { it.name == "FINNHUB_API_KEY" }?.get(null) as? String
-            val k2 = bFields.firstOrNull { it.name == "FINNBUB_API_KEY" }?.get(null) as? String
-            val k3 = bFields.firstOrNull { it.name == "FINNHUB_SECRET" }?.get(null) as? String
-            val k4 = bFields.firstOrNull { it.name == "FINNBUB_SECRET" }?.get(null) as? String
-            val env1 = System.getenv("FINNHUB_API_KEY")
-            val env2 = System.getenv("FINNBUB_API_KEY")
-            val env3 = System.getenv("FINNHUB_SECRET")
-            val env4 = System.getenv("FINNBUB_SECRET")
-            val env5 = System.getenv("FINNHUB")
-            val env6 = System.getenv("FINNBUB")
-
-            listOfNotNull(k1, k2, k3, k4, env1, env2, env3, env4, env5, env6).firstOrNull { key ->
-                key.isNotBlank() && !key.contains("MY_") && key != "FINNHUB_API_KEY" && key != "FINNBUB_API_KEY" && key != "FINNHUB_SECRET" && key != "FINNBUB_SECRET"
-            }
-        } catch (_: Exception) { null }
-        configured ?: "d9ghg4hr01qq65369ap0d9ghg4hr01qq65369apg"
-    }
+    // Direct API Keys and endpoints for private repository deployment with fallback
+    private val TWELVE_DATA_KEY get() = ApiConfig.TWELVE_DATA_KEY
+    private val FINNHUB_KEY get() = ApiConfig.FINNHUB_KEY
 
     // Price audit tracking and live feed comparison events
     private val _latestPriceAudits = MutableStateFlow<Map<String, PriceAuditRecord>>(emptyMap())
@@ -61,10 +42,10 @@ class MarketDataRepository {
 
     var onPriceAuditLogged: ((PriceAuditRecord) -> Unit)? = null
 
-    private val ALPACA_KEY = "PKMSXG3C7CFFXG4B32LUJBGJNI"
-    private val ALPACA_SECRET = "D9eagbXULrCALm3Ku3saDpJUTodiFQJfLF1nK73pimNX"
-    private val ALPACA_PAPER_BASE_URL = "https://paper-api.alpaca.markets/v2"
-    private val ALPACA_DATA_BASE_URL = "https://data.alpaca.markets/v2"
+    private val ALPACA_KEY get() = ApiConfig.ALPACA_KEY
+    private val ALPACA_SECRET get() = ApiConfig.ALPACA_SECRET
+    private val ALPACA_PAPER_BASE_URL = ApiConfig.ALPACA_PAPER_BASE_URL
+    private val ALPACA_DATA_BASE_URL = ApiConfig.ALPACA_DATA_BASE_URL
 
     private val baseQuotes = mutableMapOf(
         "BTCUSD" to SymbolQuote("BTCUSD", "Bitcoin / USD", 98450.00, 2850.00, 2.98, 99200.00, 95100.00, "$32.8B", AssetClass.CRYPTO),

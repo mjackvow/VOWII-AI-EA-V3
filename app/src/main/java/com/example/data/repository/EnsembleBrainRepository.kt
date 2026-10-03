@@ -1,6 +1,7 @@
 package com.example.data.repository
 
 import com.example.BuildConfig
+import com.example.data.config.ApiConfig
 import com.example.data.model.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -24,34 +25,14 @@ class EnsembleBrainRepository {
 
     private val jsonMedia = "application/json; charset=utf-8".toMediaType()
 
-    // Configured API Keys with fallback constants for private personal use as requested
-    private val GEMINI_API_KEY = if (!BuildConfig.GEMINI_API_KEY.isNullOrEmpty() && BuildConfig.GEMINI_API_KEY != "MY_GEMINI_API_KEY") {
-        BuildConfig.GEMINI_API_KEY
-    } else "AIzaSyDc4wvuslYy3gkVSIgWmQrc6V1VgmLIwPs"
-
-    private val OPENROUTER_API_KEY = if (!BuildConfig.OPENROUTER_API_KEY.isNullOrEmpty() && BuildConfig.OPENROUTER_API_KEY.startsWith("sk-or")) {
-        BuildConfig.OPENROUTER_API_KEY
-    } else "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"
-
-    private val BAZAARLINK_API_KEY = if (!BuildConfig.BAZAARLINK_API_KEY.isNullOrEmpty() && BuildConfig.BAZAARLINK_API_KEY.startsWith("sk-bl")) {
-        BuildConfig.BAZAARLINK_API_KEY
-    } else "sk-bl-qpnWt1Bovo_8v2fCy6ih6H4_7DgroHvDR3da71bA8KnQUrtC"
-
-    private val NVIDIA_NEMOTRON_KEY = if (!BuildConfig.NVIDIA_NEMOTRON_API_KEY.isNullOrEmpty() && BuildConfig.NVIDIA_NEMOTRON_API_KEY.startsWith("nvapi")) {
-        BuildConfig.NVIDIA_NEMOTRON_API_KEY
-    } else "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"
-
-    private val NVIDIA_DEEPSEEK_KEY = if (!BuildConfig.NVIDIA_DEEPSEEK_API_KEY.isNullOrEmpty() && BuildConfig.NVIDIA_DEEPSEEK_API_KEY.startsWith("nvapi")) {
-        BuildConfig.NVIDIA_DEEPSEEK_API_KEY
-    } else "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"
-
-    private val COHERE_API_KEY = if (!BuildConfig.COHERE_API_KEY.isNullOrEmpty() && BuildConfig.COHERE_API_KEY.length > 20) {
-        BuildConfig.COHERE_API_KEY
-    } else "9gUeeanTn9ZLuVfaH4GSwjoE6VEDODkh2Gflrr5a"
-
-    private val UNOROUTER_API_KEY = if (!BuildConfig.UNOROUTER_API_KEY.isNullOrEmpty() && BuildConfig.UNOROUTER_API_KEY.startsWith("sk-")) {
-        BuildConfig.UNOROUTER_API_KEY
-    } else "sk-zNCsHajAvDBAs3Q6kLtkrTUu3nHsPc16mp4VKqvidJaSQcjP"
+    // Configured API Keys with direct code constants for private repository deployment
+    private val GEMINI_API_KEY get() = ApiConfig.GEMINI_API_KEY
+    private val OPENROUTER_API_KEY get() = ApiConfig.OPENROUTER_API_KEY
+    private val BAZAARLINK_API_KEY get() = ApiConfig.BAZAARLINK_API_KEY
+    private val NVIDIA_NEMOTRON_KEY get() = ApiConfig.NVIDIA_NEMOTRON_KEY
+    private val NVIDIA_DEEPSEEK_KEY get() = ApiConfig.NVIDIA_DEEPSEEK_KEY
+    private val COHERE_API_KEY get() = ApiConfig.COHERE_API_KEY
+    private val UNOROUTER_API_KEY get() = ApiConfig.UNOROUTER_API_KEY
 
     private fun cleanBase64(raw: String): String {
         var s = raw.trim()
