@@ -1,4 +1,4 @@
-# VOWII AI EA V3.5
+# VOWII AI EA V3.5.1
 
 Original Scanner, Live Signal, Archives and MT5 Bridge layout, connected to a real backend. Login and signup are removed. Simulated prices, seeded signals, fake broker tickets and fallback model votes are removed. Android opens the same web interface rather than maintaining a second simulated engine.
 
@@ -7,7 +7,7 @@ Original Scanner, Live Signal, Archives and MT5 Bridge layout, connected to a re
 Frontend: https://vowii-ai-ea-v3-5.vercel.app/
 Backend: https://lpzhommiasicrscndipm.supabase.co/functions/v1/trading-api
 
-1. In Supabase project VOWII-AI-EA-V3.5, Edge Functions → Secrets, add OPENROUTER_API_KEY privately. Add a second secret named AI_MODELS containing comma-separated OpenRouter model IDs, without quotes. The catalog is validated on each analysis. Up to three models are supported. For example: `google/gemini-3.8-flash,deepseek/deepseek-v4.1-flash` (catalog verified during this release). Image scanning requires every configured model to support image input; symbol scanning does not.
+1. In Supabase Edge Functions Secrets, set AI_MODELS to comma-separated model IDs with optional (Huggingface), (UnoRouter), (Nvidia), or (OpenRouter) annotations. Optional outer braces are accepted. All six configured models are retained; up to twelve entries are supported. Configure each provider secret listed below. Model availability is checked against its actual provider catalog.
 2. In MT5 Bridge, paste the private app connection key and press Save & Verify. The provisioned key is in the local, gitignored connection-key.txt file, never deployed or committed. It stays in sessionStorage for this browser tab. There are no user accounts or signup screens. Keep this key private: it authorizes access to your workspace. Clear Connection removes it from the tab.
 3. Press Pair Windows Worker. Copy the separately generated worker token into BRIDGE_TOKEN on Windows. The original blank MQL5 timer has been replaced with bridge/mt5_worker.py, an actual MT5 Python worker. No broker password is sent to the website.
 4. Install the pinned package in bridge/requirements.txt using Windows Python 3.12. Configure process environment variables using bridge/.env.example as a reference; the script does not load .env files automatically. Set MT5_ACCOUNT, MT5_SERVER and exact broker MT5_SYMBOLS. Use the logged-in real MT5 terminal with external Python trading enabled. ENABLE_LIVE_TRADING=true is required to run the worker. Start `python bridge/mt5_worker.py`.
@@ -40,3 +40,23 @@ npm start
 ```
 
 Tailwind and Lucide are pinned and bundled locally. The build rejects known exposed-key patterns and simulation code. Public configuration contains only the Supabase URL and publishable key. Backend source: supabase/functions/trading-api. Frontend: web. Android: app; SDK compilation and device checks remain outstanding. See VERIFICATION.md for completed checks and remaining live setup.
+
+
+## V3.5.1 provider routing
+
+| Model | Provider | Secret |
+| --- | --- | --- |
+| zai-org/GLM-5.3-Flash | Hugging Face | HUGGING_FACE_API_KEY |
+| nvidia/nemotron-3-ultra-550b-a55b:free | UnoRouter | UNOROUTER_API_KEY |
+| alibaba/qwen3.6-35b-a3b:free | UnoRouter | UNOROUTER_API_KEY |
+| deepseek/deepseek-v4.1-flash | UnoRouter | UNOROUTER_API_KEY |
+| mistralai/mistral-large-4-1t-a52b | NVIDIA | NVIDIA_MISTRAL_API_KEY |
+| nvidia/nemotron-3.5-bolt-e4b | NVIDIA | NVIDIA_NEMOTRON_API_KEY |
+
+Untagged models default to OpenRouter except the exact Alibaba Qwen free ID above, which belongs to UnoRouter. UnoRouter may use the bare model slug in its API. Free variants never fall back to paid models. NVIDIA_DEEPSEEK_API_KEY is supported when an NVIDIA DeepSeek model is explicitly selected, such as deepseek-ai/deepseek-v4.1-flash(Nvidia); it does not replace the requested UnoRouter route. DERIV_API_KEY is not an AI credential. Execution remains through the MT5 worker.
+
+Saved analyses refresh every five seconds, on reload and when returning to the tab. Changing symbols clears the previous symbol's output. Model catalogs and stored connection checks refresh every minute. TEST AI CONNECTIONS sends a small real inference request to each model, can use provider credits, shares the one-minute analysis limit, and never submits trades. Results persist in the service-only workspace_ai_checks table (additive schema: supabase/ai-checks.sql).
+
+A failed provider or disagreement retains WAIT consensus. Billing/access errors, timeouts, invalid JSON, truncated output and missing keys remain visible per model. Credentials are restricted to fixed provider origins; redirects are rejected. Chart-image requests may fail for text-only models, without invented replacement votes.
+
+References: [UnoRouter](https://unorouter.com/en/docs/integrations/open-webui), [Hugging Face](https://huggingface.co/docs/inference-providers/hub-api), [NVIDIA](https://docs.api.nvidia.com/nim/reference/llm-apis).

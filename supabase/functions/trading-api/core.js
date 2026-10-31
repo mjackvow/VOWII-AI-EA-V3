@@ -1,3 +1,4 @@
+import {configuration, createModelRouter} from './models.js';
 export class ApiError extends Error { constructor(status, message) { super(message); this.status=status; } }
 const fail=(status,message)=>{throw new ApiError(status,message);};
 const positive=n=>typeof n==='number' && Number.isFinite(n) && n>0;
@@ -31,6 +32,7 @@ export function validateOrder(analysis, tick, bridge, lots, now=Date.now()) {
 async function digest(text) {return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text)))).map(x=>x.toString(16).padStart(2,'0')).join('');}
 export function createHandler(env, fetcher=fetch) {
   const base=env.SUPABASE_URL;
+  const router=createModelRouter(env,fetcher);
   async function jsonFetch(url, options={}, label='Upstream service') {
     const response=await fetcher(url,{...options,signal:AbortSignal.timeout(45000)});
     if (!response.ok) fail(response.status===429?429:502,`${label} returned HTTP ${response.status}.`);
@@ -86,7 +88,10 @@ export function createHandler(env, fetcher=fetch) {
     if(req.method==='OPTIONS') return new Response(null,{status:204,headers});
     try {
       const path=new URL(req.url).pathname.replace(/^.*\/trading-api/,'').replace(/\/$/,'')||'/';
-      if(path==='/health' && req.method==='GET') return response({version:'3.5.0',backend:'online',aiConfigured:Boolean(env.OPENROUTER_API_KEY&&env.AI_MODELS),keyConfigured:Boolean(env.OPENROUTER_API_KEY),modelsConfigured:Boolean(env.AI_MODELS),accessMode:'workspace-key'});
+      if(path==='/health' && req.method==='GET') {
+        const c=configuration(env);
+        return response({version:'3.5.1',backend:'online',aiConfigured:!c.error&&c.models.every(m=>m.keyConfigured),modelsConfigured:Boolean(env.AI_MODELS),modelCount:c.models.length,configurationError:c.error,accessMode:'workspace-key'});
+      }
       if(path==='/market' && req.method==='GET' && !req.headers.get('Authorization')) return response(await market(null));
       const worker=path.startsWith('/worker/'); const user=await identity(req,worker);
       await enabled(user);
@@ -94,6 +99,25 @@ export function createHandler(env, fetcher=fetch) {
       if(req.method==='POST') {
         const raw=await req.text(); if(raw.length>400000) fail(413,'Request too large.');
         try {body=JSON.parse(raw);} catch {fail(400,'Invalid JSON.');}
+      }
+      if(path==='/models' && req.method==='GET') {
+        const [catalog,checks]=await Promise.all([router.catalog(),db(`workspace_ai_checks?user_id=eq.${user.id}&select=payload,checked_at`)]);
+        return response({...catalog,checks:checks.map(c=>({...c.payload,checkedAt:c.checked_at}))});
+      }
+      if(path==='/ai/check' && req.method==='POST') {
+        const c=configuration(env);if(c.error)fail(503,c.error);
+        if(!await db('rpc/reserve_analysis','POST',{owner_id:user.id}))fail(429,'Allow 60 seconds between AI requests or connection tests.');
+        const requested=body.model?c.models.filter(m=>m.model===body.model&&m.provider===body.provider):c.models;
+        if(!requested.length)fail(400,'Requested model/provider is not configured.');
+        const results=await Promise.all(requested.map(async m=>{
+          try {const r=await router.complete(m,[{role:'system',content:'This is an API connection check, not market analysis. Return exactly one JSON object with status equal to ok. No markdown or reasoning.'},{role:'user',content:'Return {"status":"ok"}.'}],{diagnostic:true});
+            if(r.value.status!=='ok')throw Error('Provider did not return the requested connection-check JSON.');
+            const {value,...metadata}=r;return {...metadata,status:'ok'};
+          }catch(e){return {model:m.model,provider:m.provider,providerLabel:m.providerLabel,status:'error',error:e.message};}
+        }));
+        const checkedAt=new Date().toISOString();
+        await db('workspace_ai_checks?on_conflict=user_id,provider,model','POST',results.map(r=>({user_id:user.id,provider:r.provider,model:r.model,payload:r,checked_at:checkedAt})),'resolution=merge-duplicates,return=representation');
+        return response({results,checkedAt,successfulCount:results.filter(r=>r.status==='ok').length,total:requested.length});
       }
       if(path==='/market' && req.method==='GET') return response(await market(user));
       if(path==='/status' && req.method==='GET') {
@@ -137,7 +161,7 @@ export function createHandler(env, fetcher=fetch) {
       }
       if(path==='/analyze' && req.method==='POST') {
         await enabled(user); if(!symbolOK(body.symbol)) fail(400,'Invalid symbol.');
-        if(!env.OPENROUTER_API_KEY||!env.AI_MODELS) fail(503,'Configure OPENROUTER_API_KEY and AI_MODELS on the backend.');
+        const configured=configuration(env);if(configured.error)fail(503,configured.error);
         if(body.image!==undefined && (typeof body.image!=='string'||body.image.length>300000||!/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(body.image))) fail(400,'Invalid chart image.');
         const rows=await db(`market_ticks?user_id=eq.${user.id}&symbol=eq.${encodeURIComponent(body.symbol)}&select=payload`);
         const quote=rows[0]?.payload, bridge=await bridgeFor(user);
@@ -145,24 +169,19 @@ export function createHandler(env, fetcher=fetch) {
         if(quote.account!==bridge.account || quote.server!==bridge.server) fail(409,'Quote account does not match the connected terminal.');
         if(!Array.isArray(quote.candles)||quote.candles.length<30) fail(409,'At least 30 real H1 candles are required.');
         if(!fresh(new Date(quote.candles.at(-1).time*1000).toISOString(),7200000)) fail(409,'Broker candle history is stale.');
-        const models=[...new Set(env.AI_MODELS.split(',').map(s=>s.trim()).filter(Boolean))].slice(0,3);
-        if(!models.length) fail(503,'No AI models configured.');
-        const catalog=await jsonFetch('https://openrouter.ai/api/v1/models',{},'AI model catalog');
-        if(models.some(m=>!catalog.data?.some(item=>item.id===m))) fail(503,'A configured AI model is not available in the provider catalog.');
-        if(body.image && models.some(m=>!catalog.data.find(x=>x.id===m)?.architecture?.input_modalities?.includes('image'))) fail(400,'Chart images require every configured AI_MODELS entry to support image input. Use symbol scan or configure vision models.');
+        const models=configured.models;
         if(!await db('rpc/reserve_analysis','POST',{owner_id:user.id})) fail(429,'Allow 60 seconds between AI requests.');
         const prompt='Analyze only the supplied broker quote and H1 candles. No news or other indicators are supplied. Return JSON with action BUY, SELL or WAIT; confidence integer 0..100 (subjective, not a calibrated probability); reasoning string; stopLoss and takeProfit positive numbers for BUY/SELL, null for WAIT. Do not claim execution, certainty or unavailable data. Prefer WAIT when evidence is insufficient.';
         const results=await Promise.allSettled(models.map(async model=>{
-          const started=Date.now();
-          const answer=await jsonFetch('https://openrouter.ai/api/v1/chat/completions',{method:'POST',headers:{Authorization:`Bearer ${env.OPENROUTER_API_KEY}`,'Content-Type':'application/json'},body:JSON.stringify({model,messages:[{role:'system',content:prompt},{role:'user',content:body.image?[{type:'text',text:JSON.stringify(quote)},{type:'image_url',image_url:{url:body.image}}]:JSON.stringify(quote)}],response_format:{type:'json_object'},max_tokens:1200,temperature:0.1})},'AI provider');
-          let value;try{value=JSON.parse(answer.choices?.[0]?.message?.content);}catch{fail(502,'AI response was not valid JSON.');}
-          return {...validateDecision(value,quote),model,providerRequestId:answer.id,latencyMs:Date.now()-started};
+          const result=await router.complete(model,[{role:'system',content:prompt},{role:'user',content:body.image?[{type:'text',text:JSON.stringify(quote)},{type:'image_url',image_url:{url:body.image}}]:JSON.stringify(quote)}],{image:Boolean(body.image)});
+          const {value,...metadata}=result;
+          return {...validateDecision(value,quote),...metadata};
         }));
-        const decisions=results.map((r,i)=>r.status==='fulfilled'?{...r.value,status:'ok'}:{model:models[i],status:'error',error:r.reason.message});
+        const decisions=results.map((r,i)=>r.status==='fulfilled'?{...r.value,status:'ok'}:{model:models[i].model,provider:models[i].provider,providerLabel:models[i].providerLabel,status:'error',error:r.reason.message});
         const successful=decisions.filter(d=>d.status==='ok');
         const aligned=successful.length===models.length && successful.every(d=>d.action===successful[0].action);
         const choice=aligned?successful[0]:{action:'WAIT',confidence:0,stopLoss:null,takeProfit:null,reasoning:'Models disagreed or a provider failed. No executable signal.'};
-        const payload={...choice,confidence:aligned?Math.min(...successful.map(d=>d.confidence)):0,decisions,quote,account:bridge.account,server:bridge.server,timeframe:'H1',imageAnalyzed:Boolean(body.image),modelCount:models.length,successfulCount:successful.length};
+        const payload={...choice,completedAt:new Date().toISOString(),configuration:models.map(m=>({model:m.model,provider:m.provider})),confidence:aligned?Math.min(...successful.map(d=>d.confidence)):0,decisions,quote,account:bridge.account,server:bridge.server,timeframe:'H1',imageAnalyzed:Boolean(body.image),modelCount:models.length,successfulCount:successful.length};
         return response((await db('analyses','POST',{user_id:user.id,symbol:body.symbol,payload}))[0],201);
       }
       if(path==='/orders' && req.method==='POST') {

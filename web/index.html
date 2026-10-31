@@ -2,7 +2,7 @@
 <html lang="en"><head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>VOWII ai EA — V3.5</title>
+    <title>VOWII ai EA — V3.5.1</title>
     <!-- Tailwind CSS CDN -->
 
 
@@ -216,6 +216,11 @@
                             <div class="flex space-x-1.5 overflow-x-auto pb-1 text-[9px] font-mono" id="active-models">Models supplied by backend</div>
                         </div>
 
+                        <div class="space-y-2 text-xs">
+                            <div class="flex items-center justify-between gap-2"><span id="ai-refresh-status" class="text-textMuted" aria-live="polite">Waiting for backend</span><button id="btn-check-ai" data-onclick="checkAI()" class="rounded-lg border border-neonCyan/40 p-2 text-neonCyan" disabled>TEST AI CONNECTIONS</button></div>
+                            <p class="text-textMuted text-[10px]">Connection tests send a small request to each provider and may use API credits.</p>
+                            <div id="model-health" class="space-y-1" aria-live="polite">Connect your workspace in MT5 Bridge to view model status.</div>
+                        </div>
                         <!-- Choose Market Dropdown Selection -->
                         <div>
                             <label class="text-[9px] font-bold text-textMuted uppercase tracking-wider block mb-1">Choose Market Focus</label>
