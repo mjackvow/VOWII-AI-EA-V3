@@ -2,7 +2,7 @@
 <html lang="en"><head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>VOWII ai EA — V3.5.1</title>
+    <title>VOWII ai EA — V3.5.2</title>
     <!-- Tailwind CSS CDN -->
 
 
@@ -31,7 +31,7 @@
                     <button id="desk-nav-tab-0" class="px-3 py-1 rounded-lg text-textMuted hover:text-white transition" data-onclick="switchNavTab(0)">Scanner</button>
                     <button id="desk-nav-tab-1" class="px-3 py-1 rounded-lg text-neonGreen font-bold bg-neonGreen/10 border border-neonGreen/30" data-onclick="switchNavTab(1)">Live Signal</button>
                     <button id="desk-nav-tab-2" class="px-3 py-1 rounded-lg text-textMuted hover:text-white transition" data-onclick="switchNavTab(2)">Archives</button>
-                    <button id="desk-nav-tab-3" class="px-3 py-1 rounded-lg text-textMuted hover:text-white transition" data-onclick="switchNavTab(3)">MT5 Bridge</button>
+                    <button id="desk-nav-tab-3" class="px-3 py-1 rounded-lg text-textMuted hover:text-white transition" data-onclick="switchNavTab(3)">Deriv Trading</button>
                 </div>
 
                 <!-- Neural Key Status Badge -->
@@ -157,15 +157,15 @@
                             <span class="font-bold text-white text-sm" id="res-entry">—</span>
                         </div>
                         <div class="bg-surfaceCard p-2.5 rounded-xl border border-white/5">
-                            <span class="text-[10px] text-textMuted block">STOP LOSS (SL)</span>
+                            <span class="text-[10px] text-textMuted block">CONTRACT (SL)</span>
                             <span class="font-bold text-neonRed text-sm" id="res-sl">—</span>
                         </div>
                         <div class="bg-surfaceCard p-2.5 rounded-xl border border-white/5">
-                            <span class="text-[10px] text-textMuted block">TAKE PROFIT 1</span>
+                            <span class="text-[10px] text-textMuted block">DURATION</span>
                             <span class="font-bold text-neonGreen text-sm" id="res-tp1">—</span>
                         </div>
                         <div class="bg-surfaceCard p-2.5 rounded-xl border border-white/5">
-                            <span class="text-[10px] text-textMuted block">TAKE PROFIT 2</span>
+                            <span class="text-[10px] text-textMuted block">PRODUCT</span>
                             <span class="font-bold text-neonGreen text-sm" id="res-tp2">—</span>
                         </div>
                     </div>
@@ -173,15 +173,15 @@
                     <!-- 5 Model Breakdown Rows -->
                     <div class="space-y-1.5 text-[11px] font-mono pt-2 border-t border-white/10" id="scanner-decisions">No analysis yet.</div>
 
-                    <!-- Push to MT5 Actions Row -->
+                    <!-- Push to Deriv Actions Row -->
                     <div class="grid grid-cols-2 gap-2 pt-2">
                         <button class="py-3 rounded-xl bg-white/5 border border-white/15 text-white font-bold text-xs flex items-center justify-center space-x-1.5 hover:bg-white/10 transition" data-onclick="saveCurrentSignal()">
                             <i data-lucide="bookmark" class="w-4 h-4"></i>
                             <span>SAVE SIGNAL</span>
                         </button>
-                        <button class="py-3 rounded-xl bg-neonGreen text-black font-black text-xs flex items-center justify-center space-x-1.5 hover:bg-neonGreen/90 transition shadow-lg shadow-neonGreen/20" data-onclick="pushActiveTradeToMT5()">
+                        <button class="py-3 rounded-xl bg-neonGreen text-black font-black text-xs flex items-center justify-center space-x-1.5 hover:bg-neonGreen/90 transition shadow-lg shadow-neonGreen/20" data-onclick="prepareTrade()">
                             <i data-lucide="zap" class="w-4 h-4 fill-black"></i>
-                            <span>PUSH TO MT5</span>
+                            <span>REVIEW DERIV TRADE</span>
                         </button>
                     </div>
                 </div>
@@ -210,6 +210,7 @@
                             </div>
                         </div>
 
+                        <label class="block text-xs text-textSecondary">Rise/Fall forecast duration (minutes)<select id="market-duration" data-onchange="changeDuration(this.value)" class="w-full bg-surfaceCard rounded-xl p-2 text-white mt-1"><option value="5">5 minutes</option><option value="15">15 minutes</option><option value="30">30 minutes</option><option value="60">60 minutes</option></select></label>
                         <!-- Models List Chips -->
                         <div>
                             <span class="text-[9px] font-bold text-textMuted uppercase tracking-wider block mb-1">Active Ensemble Models</span>
@@ -219,12 +220,12 @@
                         <div class="space-y-2 text-xs">
                             <div class="flex items-center justify-between gap-2"><span id="ai-refresh-status" class="text-textMuted" aria-live="polite">Waiting for backend</span><button id="btn-check-ai" data-onclick="checkAI()" class="rounded-lg border border-neonCyan/40 p-2 text-neonCyan" disabled>TEST AI CONNECTIONS</button></div>
                             <p class="text-textMuted text-[10px]">Connection tests send a small request to each provider and may use API credits.</p>
-                            <div id="model-health" class="space-y-1" aria-live="polite">Connect your workspace in MT5 Bridge to view model status.</div>
+                            <div id="model-health" class="space-y-1" aria-live="polite">Connect your workspace in Deriv Trading to view model status.</div>
                         </div>
                         <!-- Choose Market Dropdown Selection -->
                         <div>
                             <label class="text-[9px] font-bold text-textMuted uppercase tracking-wider block mb-1">Choose Market Focus</label>
-                            <select id="models-market-select" class="w-full bg-surfaceCard border border-neonCyan/40 rounded-xl px-3 py-2 text-xs font-mono font-bold text-white focus:outline-none focus:border-neonCyan" data-onchange="onModelsMarketChange(this.value)">
+                            <select aria-label="Choose market focus" id="models-market-select" class="w-full bg-surfaceCard border border-neonCyan/40 rounded-xl px-3 py-2 text-xs font-mono font-bold text-white focus:outline-none focus:border-neonCyan" data-onchange="onModelsMarketChange(this.value)">
                                 <option value="XAUUSD" selected="">XAUUSD (Gold / US Dollar)</option>
                                 <option value="BTCUSD">BTCUSD (Bitcoin / USD)</option>
                                 <option value="ETHUSD">ETHUSD (Ethereum / USD)</option>
@@ -281,22 +282,22 @@
                                     <span class="text-white font-bold" id="models-final-entry">—</span>
                                 </div>
                                 <div class="bg-black/30 p-1 rounded">
-                                    <span class="text-[8px] text-textMuted block">STOP LOSS</span>
+                                    <span class="text-[8px] text-textMuted block">CONTRACT</span>
                                     <span class="text-neonRed font-bold" id="models-final-sl">—</span>
                                 </div>
                                 <div class="bg-black/30 p-1 rounded">
-                                    <span class="text-[8px] text-textMuted block">TAKE PROFIT</span>
+                                    <span class="text-[8px] text-textMuted block">DURATION</span>
                                     <span class="text-neonGreen font-bold" id="models-final-tp">—</span>
                                 </div>
                                 <div class="bg-black/30 p-1 rounded">
-                                    <span class="text-[8px] text-textMuted block">R:R</span>
+                                    <span class="text-[8px] text-textMuted block">PRODUCT</span>
                                     <span class="text-neonGold font-bold" id="models-rr">—</span>
                                 </div>
                             </div>
-                            <!-- Option button to execute that trade on linked MT5 -->
-                            <button class="w-full mt-2 py-2.5 bg-neonGreen text-black font-black text-xs uppercase tracking-wider rounded-lg flex items-center justify-center space-x-1.5 shadow-md shadow-neonGreen/20" data-onclick="executeModelsTradeMT5Web()">
+                            <!-- Option button to execute that trade on linked Deriv -->
+                            <button class="w-full mt-2 py-2.5 bg-neonGreen text-black font-black text-xs uppercase tracking-wider rounded-lg flex items-center justify-center space-x-1.5 shadow-md shadow-neonGreen/20" data-onclick="prepareTrade()">
                                 <i data-lucide="zap" class="w-3.5 h-3.5 fill-black"></i>
-                                <span>PUSH TO MT5</span>
+                                <span>REVIEW DERIV TRADE</span>
                             </button>
                         </div>
                     </div>
@@ -421,9 +422,9 @@
                                 <i data-lucide="bookmark" class="w-4 h-4"></i>
                                 <span>SAVE</span>
                             </button>
-                            <button class="py-3 rounded-xl bg-neonGreen text-black font-black text-xs flex items-center justify-center space-x-1 shadow-lg shadow-neonGreen/20" data-onclick="pushActiveTradeToMT5()">
+                            <button class="py-3 rounded-xl bg-neonGreen text-black font-black text-xs flex items-center justify-center space-x-1 shadow-lg shadow-neonGreen/20" data-onclick="prepareTrade()">
                                 <i data-lucide="zap" class="w-4 h-4 fill-black"></i>
-                                <span>PUSH TO MT5</span>
+                                <span>REVIEW DERIV TRADE</span>
                             </button>
                         </div>
                     </div>
@@ -459,114 +460,32 @@
             </div>
 
             <!-- ============================================================= -->
-            <!-- TAB 3: MT5 BRIDGE & EA TERMINAL                               -->
+            <!-- TAB 3: Deriv BRIDGE & EA TERMINAL                               -->
             <!-- ============================================================= -->
-            <div id="view-mt5" class="hidden space-y-4">
-
-                <!-- Account Status Card -->
+            <div id="view-deriv" class="hidden space-y-4">
                 <div class="bg-cardBg border border-neonGreen/30 rounded-2xl p-4 space-y-3">
-                    <div class="flex items-center justify-between pb-2 border-b border-white/10">
-                        <div class="flex items-center space-x-2">
-                            <span class="w-2.5 h-2.5 rounded-full bg-neonGreen pulse-live"></span>
-                            <span class="font-black text-xs uppercase text-white tracking-wider" id="bridge-status">DISCONNECTED</span>
-                        </div>
-                        <span class="text-[10px] font-mono text-neonGreen bg-neonGreen/10 px-2 py-0.5 rounded-full border border-neonGreen/20">MT5 WORKER</span>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-2 font-mono text-xs">
-                        <div class="bg-surfaceCard p-2.5 rounded-xl border border-white/5">
-                            <span class="text-[10px] text-textMuted block">ACCOUNT LOGIN</span>
-                            <span class="font-bold text-white text-sm" id="mt5-disp-login">—</span>
-                        </div>
-                        <div class="bg-surfaceCard p-2.5 rounded-xl border border-white/5">
-                            <span class="text-[10px] text-textMuted block">ACCOUNT EQUITY</span>
-                            <span class="font-bold text-neonGreen text-sm">—</span>
-                        </div>
-                    </div>
+                    <h2 class="text-white font-bold">DERIV TRADING</h2>
+                    <p id="deriv-status" class="text-xs text-textSecondary" aria-live="polite">Checking account connection</p>
+                    <div class="grid grid-cols-2 gap-2 text-xs"><div class="p-3 bg-surfaceCard rounded-xl">ACCOUNT <span id="deriv-account" class="block text-neonGreen">—</span></div><div class="p-3 bg-surfaceCard rounded-xl">BALANCE <span id="deriv-balance" class="block text-neonGreen">—</span></div></div>
+                    <p class="text-xs text-textMuted">The Deriv API token stays in Supabase. No terminal or bridge is required. This app uses real-account Rise/Fall contracts.</p>
                 </div>
-
-                <!-- MT5 Form Card -->
-                <div class="bg-cardBg border border-white/10 rounded-2xl p-4 space-y-3.5">
-                    <div class="flex items-center justify-between">
-                        <span class="font-bold text-xs uppercase text-white">MT5 CONNECTION</span>
-                        <span class="text-[10px] font-mono text-textMuted">PRIVATE KEY</span>
-                    </div>
-
-                    <!-- Presets -->
-                    <div class="grid grid-cols-2 gap-2 text-xs font-mono">
-                        <button id="preset-demo" class="py-2 rounded-lg bg-neonGreenDark text-neonGreen border border-neonGreen font-bold text-center" data-onclick="registerBridge()">PAIR WINDOWS WORKER</button>
-                        <button id="preset-real" class="py-2 rounded-lg bg-surfaceCard text-textMuted border border-white/10 text-center font-bold" data-onclick="clearConnection()">CLEAR CONNECTION</button>
-                    </div>
-
-                    <!-- Inputs -->
-                    <div class="space-y-2.5 text-xs font-mono">
-                        <div>
-                            <label class="block text-[10px] text-textMuted uppercase mb-1">Account Login ID</label>
-                            <input type="text" id="input-mt5-login" class="w-full bg-surfaceCard border border-white/10 rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-neonGreen" readonly="" placeholder="Reported by Windows MT5 worker">
-                        </div>
-                        <div>
-                            <label class="block text-[10px] text-textMuted uppercase mb-1">App connection key</label>
-                            <input type="password" id="input-mt5-pass" class="w-full bg-surfaceCard border border-white/10 rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-neonGreen" autocomplete="off">
-                        </div>
-                        <div>
-                            <label class="block text-[10px] text-textMuted uppercase mb-1">Broker Server</label>
-                            <input type="text" id="input-mt5-server" class="w-full bg-surfaceCard border border-white/10 rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-neonGreen" readonly="" placeholder="Reported by Windows MT5 worker">
-                        </div>
-                    </div>
-
-                    <!-- T&C Checkbox -->
-                    <div class="flex items-start space-x-2 bg-surfaceCard p-2.5 rounded-xl border border-white/5">
-                        <input type="checkbox" id="chk-mt5-terms" class="mt-0.5 accent-neonGreen w-4 h-4 rounded">
-                        <label for="chk-mt5-terms" class="text-[11px] text-textSecondary cursor-pointer">I confirm that pressing PUSH TO MT5 requests a real-money trade on <span id="label-acc-no">the connected account</span>.</label>
-                    </div>
-
-                    <!-- Risk Control -->
-                    <div class="space-y-1.5">
-                        <div class="flex justify-between text-xs font-mono">
-                            <span class="text-textMuted">Order Volume:</span>
-                            <span class="font-bold text-neonGreen" id="risk-slider-val">Lots (max 1)</span>
-                        </div>
-                        <input type="number" min="0.01" max="1" step="0.01" class="w-full bg-surfaceCard border border-white/10 rounded-xl p-2 text-white" id="trade-lots" value="0.01">
-                    </div>
-
-                    <button class="w-full py-3 bg-neonGreen text-black font-black text-xs uppercase tracking-wider rounded-xl hover:bg-neonGreen/90 transition shadow-lg shadow-neonGreen/20" data-onclick="saveMT5Settings()">
-                        SAVE &amp; VERIFY MT5 BRIDGE
-                    </button>
-                </div>
-
-                <!-- Live Terminal Console -->
-                <div class="bg-cardBg border border-white/10 rounded-2xl p-4 space-y-2">
-                    <div class="flex items-center justify-between">
-                        <span class="font-mono text-xs font-bold text-textSecondary uppercase">LIVE EXECUTION LOGS</span>
-                        <button class="text-[10px] font-mono text-textMuted hover:text-white" data-onclick="clearLogs()">Clear</button>
-                    </div>
-                    <div class="bg-black/70 p-3 rounded-xl font-mono text-[11px] text-textSecondary space-y-1 max-h-36 overflow-y-auto border border-white/5" id="logs-container">Waiting for backend data.</div>
-                </div>
-
-                <!-- MQL5 Expert Advisor Source Box -->
                 <div class="bg-cardBg border border-white/10 rounded-2xl p-4 space-y-3">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <h4 class="font-mono text-xs font-bold text-neonGreen uppercase">mt5_worker.py</h4>
-                            <p class="text-[10px] text-textMuted">Run on Windows beside your MT5 terminal</p>
-                        </div>
-                        <div class="flex space-x-1.5">
-                            <button class="bg-white/10 text-white px-2.5 py-1.5 rounded-lg text-xs font-mono font-bold flex items-center space-x-1" data-onclick="copyEACode()">
-                                <i data-lucide="copy" class="w-3 h-3"></i>
-                                <span id="btn-copy-label">Copy</span>
-                            </button>
-                            <button class="bg-neonGreen text-black px-2.5 py-1.5 rounded-lg text-xs font-mono font-black flex items-center space-x-1" data-onclick="downloadEAScript()">
-                                <i data-lucide="download" class="w-3 h-3"></i>
-                                <span>.py</span>
-                            </button>
-                        </div>
-                    </div>
-                    <pre class="bg-black/80 p-3 rounded-xl text-[10px] font-mono text-textSecondary overflow-x-auto max-h-28 border border-white/5" id="mql5-code-box">1. Save your app connection key.
-2. Pair Windows worker and copy its separate token.
-3. Configure bridge/.env.example on Windows.
-4. Run python mt5_worker.py with your real MT5 terminal.</pre><textarea id="bridge-token" readonly="" hidden="" class="w-full bg-black text-white text-xs p-2" aria-label="New bridge token: copy privately"></textarea>
+                    <label for="connection-key" class="text-xs text-textSecondary">Private app connection key</label>
+                    <input id="connection-key" type="password" autocomplete="off" class="w-full bg-surfaceCard border border-white/10 rounded-xl p-3 text-white">
+                    <div class="grid grid-cols-2 gap-2"><button data-onclick="saveConnection()" class="bg-neonGreen rounded-xl p-3 text-black text-xs font-bold">SAVE CONNECTION</button><button data-onclick="clearConnection()" class="bg-surfaceCard rounded-xl p-3 text-white text-xs">CLEAR CONNECTION</button></div>
                 </div>
-
+                <div class="bg-cardBg border border-white/10 rounded-2xl p-4 space-y-3">
+                    <h3 class="text-white font-bold text-sm">RISE / FALL CONTRACT</h3>
+                    <p class="text-xs text-textSecondary">BUY → CALL (Rise), SELL → PUT (Fall), WAIT → no purchase. The entire stake can be lost. CFD stop-loss and take-profit levels do not apply.</p>
+                    <label for="trade-stake" class="block text-xs text-textSecondary">Stake in account currency</label>
+                    <input id="trade-stake" type="number" min="0.01" step="0.01" value="1" class="w-full bg-surfaceCard border border-white/10 rounded-xl p-3 text-white">
+                    <p id="stake-cap" class="text-xs text-textMuted"></p>
+                    <button id="btn-quote" data-onclick="prepareTrade()" class="w-full bg-neonGreen text-black font-bold rounded-xl p-3 text-xs">GET DERIV CONTRACT QUOTE</button>
+                    <div id="contract-preview" class="text-xs text-textSecondary whitespace-pre-line live-data" aria-live="polite">Run analysis for your selected symbol and duration, then request a quote.</div>
+                    <label class="flex items-start gap-2 text-xs text-textSecondary"><input id="confirm-real-trade" type="checkbox">I confirm the displayed real-money contract and accept losing its full purchase price.</label>
+                    <button id="btn-buy" data-onclick="buyContract()" disabled class="w-full bg-neonGreen text-black font-bold rounded-xl p-3 text-xs">CONFIRM REAL PURCHASE</button>
+                </div>
+                <div class="bg-cardBg border border-white/10 rounded-2xl p-4 space-y-3"><h3 class="text-white text-sm font-bold">DERIV ORDER RECEIPTS</h3><div id="logs-container" class="space-y-2"></div><button data-onclick="loadPortfolio()" class="text-neonCyan text-xs border border-neonCyan/30 rounded-xl p-2">REFRESH OPEN CONTRACTS</button><div id="deriv-portfolio" class="text-xs text-textSecondary"></div></div>
             </div>
 
         </main>
@@ -594,10 +513,10 @@
                 <span class="text-[11px] font-bold">Archives</span>
             </button>
 
-            <!-- Tab 3: MT5 Bridge -->
+            <!-- Tab 3: Deriv Trading -->
             <button id="nav-tab-3" class="nav-item flex flex-col items-center justify-center py-1 px-3 rounded-xl transition text-textMuted" data-onclick="switchNavTab(3)">
                 <i data-lucide="zap" class="w-5 h-5 mb-1"></i>
-                <span class="text-[11px] font-bold">MT5 Bridge</span>
+                <span class="text-[11px] font-bold">Deriv Trading</span>
             </button>
 
         </nav>

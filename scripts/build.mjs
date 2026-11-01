@@ -8,5 +8,5 @@ for(const name of ['index.html','app.js','style.css','config.js']){
  await copyFile(`web/${name}`,`public/${name}`);
 }
 await copyFile('node_modules/lucide/dist/umd/lucide.js','public/lucide.js');
-await copyFile('bridge/mt5_worker.py','public/mt5_worker.py');
+
 console.log('Built V3.5 with original interface and live backend.');

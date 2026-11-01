@@ -1,62 +1,30 @@
-# VOWII AI EA V3.5.1
+# VOWII AI EA V3.5.2
 
-Original Scanner, Live Signal, Archives and MT5 Bridge layout, connected to a real backend. Login and signup are removed. Simulated prices, seeded signals, fake broker tickets and fallback model votes are removed. Android opens the same web interface rather than maintaining a second simulated engine.
-
-## Setup
+The original Scanner, Live Signal and Archives interface now uses Deriv market data and a Deriv Trading panel. Login/signup and the MT5 bridge have been removed.
 
 Frontend: https://vowii-ai-ea-v3-5.vercel.app/
 Backend: https://lpzhommiasicrscndipm.supabase.co/functions/v1/trading-api
 
-1. In Supabase Edge Functions Secrets, set AI_MODELS to comma-separated model IDs with optional (Huggingface), (UnoRouter), (Nvidia), or (OpenRouter) annotations. Optional outer braces are accepted. All six configured models are retained; up to twelve entries are supported. Configure each provider secret listed below. Model availability is checked against its actual provider catalog.
-2. In MT5 Bridge, paste the private app connection key and press Save & Verify. The provisioned key is in the local, gitignored connection-key.txt file, never deployed or committed. It stays in sessionStorage for this browser tab. There are no user accounts or signup screens. Keep this key private: it authorizes access to your workspace. Clear Connection removes it from the tab.
-3. Press Pair Windows Worker. Copy the separately generated worker token into BRIDGE_TOKEN on Windows. The original blank MQL5 timer has been replaced with bridge/mt5_worker.py, an actual MT5 Python worker. No broker password is sent to the website.
-4. Install the pinned package in bridge/requirements.txt using Windows Python 3.12. Configure process environment variables using bridge/.env.example as a reference; the script does not load .env files automatically. Set MT5_ACCOUNT, MT5_SERVER and exact broker MT5_SYMBOLS. Use the logged-in real MT5 terminal with external Python trading enabled. ENABLE_LIVE_TRADING=true is required to run the worker. Start `python bridge/mt5_worker.py`.
-5. After real broker quotes appear, run analysis. Trade submission requires a fresh BUY/SELL decision, lot size, the real-trade checkbox, and confirmation of the specific order. No trades are placed during tests.
+## Configuration
 
-Optionally configure MASSIVE_API_KEY on Supabase for FX reference quotes. Connected chat market-data plugins do not automatically provide runtime API credentials or subscriptions to the deployed app. Earlier Git commits exposed provider credentials; revoke those with their providers and use fresh secrets.
+Configure provider credentials and AI_MODELS privately in Supabase Edge Function secrets. Optional provider annotations (Huggingface), (UnoRouter), (Nvidia), and (OpenRouter) route each model to its own provider. All six configured models are retained. API credentials never enter frontend files.
 
-## Data and execution
+For execution, set DERIV_API_KEY to a current Deriv Options personal access token with trading access and DERIV_APP_ID to your registered app ID. Legacy MT5 credentials are not used. If multiple active real Options accounts exist, set DERIV_ACCOUNT_ID. Set DERIV_WORKSPACE_ID to the owning workspace when multiple workspaces are enabled. DERIV_MAX_STAKE defaults to 10 account-currency units; every purchase is additionally capped at 1% of the current available balance. No portfolio-wide daily loss limit is implemented.
 
-Coinbase BTC-USD and ETH-USD reference quotes stream over WebSocket and refresh through the backend. They cannot authorize MT5 orders. The worker sends real broker ticks every three seconds, and the frontend polls every five seconds. This is sampled live data, not lossless tick history. Quotes older than 15 seconds are marked stale and cannot authorize an order. Only H1 closed candles are currently supported; other original timeframe controls explain that limitation.
+Save your private app connection key in Deriv Trading. It authorizes the workspace without a login/signup flow, remains in sessionStorage for the current tab, and can be cleared. The local connection-key.txt is gitignored and must never be published. Broker credentials remain server-side.
 
-AI receives broker bid/ask and up to 100 actual H1 candles, plus the optional chart image. Each configured model is called. Provider IDs, responses, errors and latency are saved. Failures or direction disagreement produce WAIT. Unanimous valid responses use the first model's protective levels and minimum reported confidence. Confidence is subjective, not calibrated. No news, order-book depth, COT or invented indicator values are shown. Analyses are automatically archived in Supabase.
+## Markets, analysis and orders
 
-A signal can produce at most one queued order. The worker checks real account identity, permissions, timestamps, lot limits, stops, price movement, projected stop-loss exposure and broker order_check before order_send. Default projected loss cap is 0.5% of equity, configurable up to 1%. Maximum application order size is one lot. Keep bridge-state.sqlite on persistent storage and run one worker per credential. Durable receipts are written before sending; ambiguous results become UNKNOWN and are never automatically resent. A fill needs an actual broker deal ID, volume and price. There is no portfolio-wide daily drawdown circuit breaker; slippage can exceed estimated stop loss.
+The dropdown loads the current Deriv symbol catalog, grouped by market. Prices stream through Deriv's public WebSocket, with backend snapshots refreshed every five seconds. Timeframes M5, M15, M30, H1, H4 and D1 request up to 100 real closed candles. Stale or closed markets cannot authorize analysis or purchases. Closed markets remain identified in the catalog.
 
-## Database and files
+Each analysis sends the selected symbol, spot, timestamp, selected-timeframe candles and selected forecast duration to every configured AI model. Optional chart images supplement the same market data. Results and provider failures are persisted and refreshed on the frontend. All models must return valid, aligned directions; failure or disagreement produces WAIT. Confidence is subjective, not a probability of profit.
 
-The additive supabase/workspaces.sql creates service-only workspace tables with RLS and separate atomic claim/rate-limit functions. Connection and worker credentials are stored only as SHA-256 hashes. The handler checks workspace authorization on private routes; public health and exchange quotes require no key. verify_jwt=false permits this custom authentication. Service-role credentials never reach the frontend.
+Rise/Fall uses CALL for BUY, PUT for SELL, and no purchase for WAIT. A fresh analysis can create one quote. Review the account, stake, duration, maximum price and payout before checking the real-money confirmation and approving the purchase. Backend requests a fresh proposal on the purchase connection and rejects worse terms, changed accounts, stale signals or excessive price movement. The database atomically claims the order before sending a buy. Unknown results are never automatically resent; inspect Deriv history before taking further action. A purchase may lose the entire stake.
 
-The earlier auth tables and policies remain untouched; the new application does not use them. supabase/schema.sql records the original bootstrap. Do not rerun either schema blindly against an existing project. release_files stores private, versioned source snapshots. Private app-files and release-artifacts Storage buckets also exist. Application source is executed from Edge Functions/Vercel, not directly from database rows.
+Public prices do not require an account connection. A configured secret alone does not prove account access: the Deriv Trading panel displays the actual account API result. Contract availability is validated for that account and symbol at quote time.
 
-## Development
+## Development and verification
 
-```
-npm ci
-npm test
-python -m unittest discover -s tests -p test_worker.py
-npm run build
-npm start
-```
+Run npm ci, npm test, npm run build, then npm start. Tests cover provider routing, selected-market prompt data, fail-closed consensus, quote expiry, stake limits, explicit confirmation, concurrent purchase prevention and ambiguous broker responses. Broker purchase tests use fixtures; no real purchases are made during verification. Browser scripts support a locally installed Playwright module via PLAYWRIGHT_MODULE.
 
-Tailwind and Lucide are pinned and bundled locally. The build rejects known exposed-key patterns and simulation code. Public configuration contains only the Supabase URL and publishable key. Backend source: supabase/functions/trading-api. Frontend: web. Android: app; SDK compilation and device checks remain outstanding. See VERIFICATION.md for completed checks and remaining live setup.
-
-
-## V3.5.1 provider routing
-
-| Model | Provider | Secret |
-| --- | --- | --- |
-| zai-org/GLM-5.3-Flash | Hugging Face | HUGGING_FACE_API_KEY |
-| nvidia/nemotron-3-ultra-550b-a55b:free | UnoRouter | UNOROUTER_API_KEY |
-| alibaba/qwen3.6-35b-a3b:free | UnoRouter | UNOROUTER_API_KEY |
-| deepseek/deepseek-v4.1-flash | UnoRouter | UNOROUTER_API_KEY |
-| mistralai/mistral-large-4-1t-a52b | NVIDIA | NVIDIA_MISTRAL_API_KEY |
-| nvidia/nemotron-3.5-bolt-e4b | NVIDIA | NVIDIA_NEMOTRON_API_KEY |
-
-Untagged models default to OpenRouter except the exact Alibaba Qwen free ID above, which belongs to UnoRouter. UnoRouter may use the bare model slug in its API. Free variants never fall back to paid models. NVIDIA_DEEPSEEK_API_KEY is supported when an NVIDIA DeepSeek model is explicitly selected, such as deepseek-ai/deepseek-v4.1-flash(Nvidia); it does not replace the requested UnoRouter route. DERIV_API_KEY is not an AI credential. Execution remains through the MT5 worker.
-
-Saved analyses refresh every five seconds, on reload and when returning to the tab. Changing symbols clears the previous symbol's output. Model catalogs and stored connection checks refresh every minute. TEST AI CONNECTIONS sends a small real inference request to each model, can use provider credits, shares the one-minute analysis limit, and never submits trades. Results persist in the service-only workspace_ai_checks table (additive schema: supabase/ai-checks.sql).
-
-A failed provider or disagreement retains WAIT consensus. Billing/access errors, timeouts, invalid JSON, truncated output and missing keys remain visible per model. Credentials are restricted to fixed provider origins; redirects are rejected. Chart-image requests may fail for text-only models, without invented replacement votes.
-
-References: [UnoRouter](https://unorouter.com/en/docs/integrations/open-webui), [Hugging Face](https://huggingface.co/docs/inference-providers/hub-api), [NVIDIA](https://docs.api.nvidia.com/nim/reference/llm-apis).
+Supabase stores analyses and contract receipts, plus versioned source snapshots in release_files. Edge Functions execute the backend code; stored source files are not executable database programs. Historical MT5 database tables are retained, but their API routes and worker source are retired.
