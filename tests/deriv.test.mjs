@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {validateDerivAnalysis,validateStake,DerivError} from '../supabase/functions/trading-api/deriv.js';
+import {validateDerivAnalysis,validateStake,DerivError,createDeriv} from '../supabase/functions/trading-api/deriv.js';
 import {createHandler} from '../supabase/functions/trading-api/core.js';
 const uid='11111111-1111-4111-8111-111111111111',aid='22222222-2222-4222-8222-222222222222',oid='33333333-3333-4333-8333-333333333333';
 const quote=()=>({symbol:'R_100',price:100,source:'Deriv',open:true,stale:false,timestamp:new Date().toISOString()});
@@ -12,3 +12,10 @@ const preview=f=>f.call('/deriv/proposal',{analysisId:aid,stake:1,duration:5});c
 test('concurrent confirmed requests buy at most once and retain receipt',async()=>{const f=fixture();assert.equal((await preview(f)).status,201);assert.equal((await f.call('/deriv/buy',{orderId:oid})).status,400);await Promise.all([buy(f),buy(f)]);assert.equal(f.buys(),1);assert.equal(f.order().status,'purchased');assert.equal((await buy(f)).body.broker_result.contract_id,123);assert.equal(f.buys(),1);});
 test('lost broker response stays unknown and is never resent',async()=>{const f=fixture({ambiguous:true});await preview(f);assert.equal((await buy(f)).body.status,'unknown');await buy(f);assert.equal(f.buys(),1);});
 test('worse terms and expired proposals cannot buy',async()=>{const f=fixture({changed:true});await preview(f);assert.equal((await buy(f)).status,409);assert.equal(f.buys(),0);f.order().expires_at=new Date(0).toISOString();assert.equal((await buy(f)).status,409);});
+
+test('Deriv accepts numeric-string balances including zero and rejects malformed balances',async()=>{
+ for(const balance of ['0','123.45',0,123.45,'',null,'NaN','12usd']){
+  const d=createDeriv({DERIV_API_KEY:'fixture',DERIV_APP_ID:'app'},async()=>new Response(JSON.stringify({data:[{account_id:'ROT123',account_type:'real',status:'active',currency:'USD',balance}]})));
+  if(["0","123.45",0,123.45].includes(balance))assert.equal((await d.account()).balance,Number(balance));else await assert.rejects(d.account());
+ }
+});

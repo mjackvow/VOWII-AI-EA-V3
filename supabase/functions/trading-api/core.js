@@ -67,7 +67,7 @@ export function createHandler(env, fetcher=fetch, derivService=null) {
       const path=url.pathname.replace(/^.*\/trading-api/,'').replace(/\/$/,'')||'/';
       if(path==='/health' && req.method==='GET') {
         const c=configuration(env);
-        return response({version:'3.5.2',backend:'online',aiConfigured:!c.error&&c.models.every(m=>m.keyConfigured),modelsConfigured:Boolean(env.AI_MODELS),modelCount:c.models.length,configurationError:c.error,accessMode:'workspace-key',execution:'Deriv Rise/Fall',derivKeyConfigured:Boolean(env.DERIV_API_KEY||env.DERIV_API_SECRET),derivAppIdConfigured:Boolean(env.DERIV_APP_ID)});
+        return response({version:'3.5.3',backend:'online',aiConfigured:!c.error&&c.models.every(m=>m.keyConfigured),modelsConfigured:Boolean(env.AI_MODELS),modelCount:c.models.length,configurationError:c.error,accessMode:'workspace-key',execution:'Deriv Rise/Fall',derivKeyConfigured:Boolean(env.DERIV_API_KEY||env.DERIV_API_SECRET),derivAppIdConfigured:Boolean(env.DERIV_APP_ID)});
       }
       if(path==='/markets'&&req.method==='GET')return response({symbols:await deriv.symbols()});
       if(path==='/market'&&req.method==='GET')return response(await market(url));
@@ -150,7 +150,7 @@ export function createHandler(env, fetcher=fetch, derivService=null) {
         await executionOwner(user);if(!uuid(body.orderId)||body.confirmRealTrade!==true)fail(400,'A quoted order and explicit real-trade confirmation are required.');
         const order=(await db(`orders?id=eq.${body.orderId}&user_id=eq.${user.id}`))[0];if(!order)fail(404,'Order not found.');
         if(order.status!=='quoted')return response(order);
-        if(Date.parse(order.expires_at)<=Date.now())fail(409,'Proposal expired. Run a new analysis.');
+        if(!Number.isFinite(Date.parse(order.expires_at))||Date.parse(order.expires_at)<=Date.now())fail(409,'Proposal expired. Run a new analysis.');
         const analysis=await getAnalysis(order.analysis_id,user),params=order.payload.parameters;
         const tick=await deriv.snapshot(analysis.symbol,analysis.payload.timeframe);validateDerivAnalysis(analysis,tick,params.duration);
         return response(await deriv.session(async(ws,account)=>{

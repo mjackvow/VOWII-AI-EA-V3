@@ -2,7 +2,7 @@
 <html lang="en"><head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>VOWII ai EA — V3.5.2</title>
+    <title>VOWII ai EA — V3.5.3</title>
     <!-- Tailwind CSS CDN -->
 
 
@@ -123,6 +123,7 @@
                 </div>
 
                 <!-- SCAN TRIGGER BUTTON -->
+                <p id="scanner-readiness" role="status" class="text-xs text-textSecondary mb-2"></p>
                 <button id="btn-run-scan" class="w-full h-13 py-3.5 bg-neonGreen text-black font-black text-sm tracking-wider uppercase rounded-xl flex items-center justify-center space-x-2 transition shadow-lg shadow-neonGreen/20 active:scale-[0.98]" data-onclick="runNeuralScan()">
                     <i data-lucide="sparkles" class="w-5 h-5 fill-black"></i>
                     <span id="scan-btn-text">SCAN CHART SETUP (AI ENSEMBLE)</span>
@@ -258,6 +259,7 @@
                         </div>
 
                         <!-- Run AI Analysis Button -->
+                        <p id="analysis-readiness" role="status" class="text-xs text-textSecondary mb-2"></p><button class="text-xs text-neonGreen mb-2" data-onclick="connectWorkspace()">CONNECT WORKSPACE</button>
                         <button id="btn-run-models-analysis" class="w-full py-3 bg-neonGreen text-black font-black text-xs uppercase tracking-wider rounded-xl hover:bg-neonGreen/90 transition shadow-lg shadow-neonGreen/20 flex items-center justify-center space-x-1.5" data-onclick="runModelsAnalysisWeb()">
                             <i data-lucide="sparkles" class="w-4 h-4 fill-black"></i>
                             <span id="models-analysis-btn-text">RUN MODELS ANALYSIS</span>
@@ -470,7 +472,7 @@
                     <p class="text-xs text-textMuted">The Deriv API token stays in Supabase. No terminal or bridge is required. This app uses real-account Rise/Fall contracts.</p>
                 </div>
                 <div class="bg-cardBg border border-white/10 rounded-2xl p-4 space-y-3">
-                    <label for="connection-key" class="text-xs text-textSecondary">Private app connection key</label>
+                    <label for="connection-key" class="text-xs text-textSecondary">Private workspace connection key</label><p class="text-xs text-textMuted">This key unlocks your app and AI usage. It is not your Deriv API key. Deriv credentials stay in Supabase.</p>
                     <input id="connection-key" type="password" autocomplete="off" class="w-full bg-surfaceCard border border-white/10 rounded-xl p-3 text-white">
                     <div class="grid grid-cols-2 gap-2"><button data-onclick="saveConnection()" class="bg-neonGreen rounded-xl p-3 text-black text-xs font-bold">SAVE CONNECTION</button><button data-onclick="clearConnection()" class="bg-surfaceCard rounded-xl p-3 text-white text-xs">CLEAR CONNECTION</button></div>
                 </div>

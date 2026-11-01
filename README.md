@@ -1,4 +1,4 @@
-# VOWII AI EA V3.5.2
+# VOWII AI EA V3.5.3
 
 The original Scanner, Live Signal and Archives interface now uses Deriv market data and a Deriv Trading panel. Login/signup and the MT5 bridge have been removed.
 
@@ -28,3 +28,9 @@ Public prices do not require an account connection. A configured secret alone do
 Run npm ci, npm test, npm run build, then npm start. Tests cover provider routing, selected-market prompt data, fail-closed consensus, quote expiry, stake limits, explicit confirmation, concurrent purchase prevention and ambiguous broker responses. Broker purchase tests use fixtures; no real purchases are made during verification. Browser scripts support a locally installed Playwright module via PLAYWRIGHT_MODULE.
 
 Supabase stores analyses and contract receipts, plus versioned source snapshots in release_files. Edge Functions execute the backend code; stored source files are not executable database programs. Historical MT5 database tables are retained, but their API routes and worker source are retired.
+
+## Current active model set
+
+Production currently uses only nvidia/nemotron-3.5-bolt-e4b(Nvidia), verified with actual BTC/USD analysis. AI_ACTIVE_MODELS can explicitly override this selection using the same comma-separated syntax. AI_MODELS retains the previous candidate list, but is not the active production selection. Do not add candidates until actual market-analysis responses have been tested. Any failure in the active set still yields WAIT; failed votes are never silently omitted. With one model, the result is a single-model opinion, not independent consensus.
+
+The RUN MODELS ANALYSIS button directs an unconnected user to workspace settings, and displays readiness or the blocking reason. Open local connection-key.txt and paste its contents into the private workspace key field, then Save & Verify. This is independent of the Deriv API credential. A numeric-string Deriv balance is normalized and validated; zero balance permits analysis and account reads but blocks purchase quotes.

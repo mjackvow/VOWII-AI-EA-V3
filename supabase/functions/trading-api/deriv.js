@@ -43,8 +43,9 @@ export function createDeriv(env,fetcher=fetch,connect=connectDeriv){
   const real=accounts.filter(a=>a.account_type==='real'&&a.status==='active');
   const selected=env.DERIV_ACCOUNT_ID?real.find(a=>a.account_id===env.DERIV_ACCOUNT_ID):real.length===1?real[0]:null;
   if(!selected)throw new DerivError(real.length>1?'Set DERIV_ACCOUNT_ID to select one of your active real Options accounts.':'No matching active real Deriv Options account.');
-  if(!/^[A-Za-z0-9_-]{1,40}$/.test(selected.account_id)||typeof selected.balance!=='number'||!Number.isFinite(selected.balance))throw new DerivError('Invalid Deriv account details.');
-  const data={account:selected.account_id,currency:selected.currency,balance:selected.balance,accountMode:'real',connected:true};accountCache={until:Date.now()+15000,data};return data;
+  const balance=typeof selected.balance==='number'?selected.balance:typeof selected.balance==='string'&&/^-?\d+(?:\.\d+)?$/.test(selected.balance)?Number(selected.balance):NaN;
+  if(!/^[A-Za-z0-9_-]{1,80}$/.test(selected.account_id)||!Number.isFinite(balance)||typeof selected.currency!=='string'||!selected.currency)throw new DerivError('Invalid Deriv account details.');
+  const data={account:selected.account_id,currency:selected.currency,balance,accountMode:'real',connected:true};accountCache={until:Date.now()+15000,data};return data;
  }
  async function session(fn){const a=await account(true);const otp=await rest(`/trading/v1/options/accounts/${encodeURIComponent(a.account)}/otp`,'POST');const url=new URL(otp?.url);if(url.hostname!=='api.derivws.com'||url.protocol!=='wss:'||url.pathname!=='/trading/v1/options/ws/real')throw new DerivError('Deriv did not return a real-account session.');const ws=await connect(url.toString());try{return await fn(ws,a);}finally{ws.close();}}
  return {symbols,snapshot,account,session};
