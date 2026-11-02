@@ -1,0 +1,8 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {createHandler} from '../supabase/functions/trading-api/core.js';
+test('health is public, account routes require authentication',async()=>{const handler=createHandler({},()=>{throw Error('Must not call upstream');});const health=await handler(new Request('https://example.test/trading-api/health'));assert.equal(health.status,200);for(const path of ['/status','/orders','/worker/claim','/models','/ai/check'])assert.equal((await handler(new Request('https://example.test/trading-api'+path))).status,401);});
+test('invalid connection key cannot read orders',async()=>{let calls=0;const handler=createHandler({SUPABASE_URL:'https://db.test'},async()=>{calls++;return new Response('[]');});const r=await handler(new Request('https://example.test/trading-api/orders',{headers:{Authorization:'Bearer bad'}}));assert.equal(r.status,401);assert.equal(calls,1);});
+test('disabled workspace cannot call AI',async()=>{let calls=0;const handler=createHandler({SUPABASE_URL:'https://db.test'},async()=>new Response(JSON.stringify(++calls===1?[{id:'11111111-1111-4111-8111-111111111111'}]:[])));const r=await handler(new Request('https://example.test/trading-api/analyze',{method:'POST',headers:{Authorization:'Bearer test'},body:'{}'}));assert.equal(r.status,403);});
+
+test('worker request without verified hash is denied',async()=>{const handler=createHandler({SUPABASE_URL:'https://db.test'},async()=>new Response('[]'));const r=await handler(new Request('https://example.test/trading-api/worker/claim',{method:'POST',headers:{Authorization:'Bearer bad'},body:'{}'}));assert.equal(r.status,401);});
